@@ -121,7 +121,7 @@
         const colorBlue = '#89CFF0';
         
         let currentRotation = 0;
-        let isSpinning = false;
+        let spinState = 'idle'; // 'idle', 'spinning', 'teasing'
 
         // Draw the wheel
         function drawWheel() {
@@ -164,8 +164,8 @@
 
         // Spin logic
         spinBtn.addEventListener('click', () => {
-            if (isSpinning) return;
-            isSpinning = true;
+            if (spinState !== 'idle') return;
+            spinState = 'spinning';
             spinBtn.disabled = true;
             
             // We want it to ALWAYS land on pink. 
@@ -182,7 +182,6 @@
             
             // To bring that center to the top (which is 0 degrees in our CSS rotation),
             // we must rotate the wheel backward by that offset. 
-            // -segmentCenterOffset is equivalent to (360 - segmentCenterOffset) forward.
             const targetModulo = 360 - segmentCenterOffset;
             
             // Add multiple full spins (e.g., 5 to 8 spins) for visual effect
@@ -195,16 +194,37 @@
                 rotationDiff += 360; // ensure forward spinning
             }
             
-            currentRotation += extraSpins + rotationDiff;
+            const finalRotation = currentRotation + extraSpins + rotationDiff;
             
-            // Apply CSS transform to spin
-            canvas.style.transform = `rotate(${currentRotation}deg)`;
+            // --- THE TEASE LOGIC ---
+            // Stop 14 degrees short of the target pink center. 
+            // The pink center is 9 degrees from its edge. 
+            // Stopping 14 degrees short leaves the pointer 5 degrees into the preceding BLUE segment.
+            const teaseRotation = finalRotation - 14;
+            
+            // Save final rotation on the canvas dataset for the next phase
+            canvas.dataset.finalRotation = finalRotation;
+            currentRotation = finalRotation; // Update internal state to final so next spins calculate correctly
+            
+            // Stage 1: Fast spin that almost stops on Blue
+            canvas.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.25, 1)';
+            canvas.style.transform = `rotate(${teaseRotation}deg)`;
         });
 
         // Listen for the CSS transition to finish to show the result
         canvas.addEventListener('transitionend', () => {
-            if (isSpinning) {
-                isSpinning = false;
+            if (spinState === 'spinning') {
+                // Stage 2: The wheel almost stopped on blue, now creep into pink!
+                spinState = 'teasing';
+                const finalRotation = canvas.dataset.finalRotation;
+                
+                // Switch to a slow, sluggish easing to simulate the wheel ticking over one last time
+                canvas.style.transition = 'transform 2.5s ease-out';
+                canvas.style.transform = `rotate(${finalRotation}deg)`;
+                
+            } else if (spinState === 'teasing') {
+                // Done spinning and teasing!
+                spinState = 'idle';
                 
                 // Slight delay before showing popup for dramatic effect
                 setTimeout(() => {
