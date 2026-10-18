@@ -42,10 +42,24 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
+        .header-points-wrapper {
+            text-align: right;
+        }
+        
+        .header-points-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+
         .points-display {
             font-size: 1.6rem;
             font-weight: bold;
             color: var(--accent);
+            line-height: 1;
         }
 
         .share-banner {
@@ -313,13 +327,49 @@
         .point-card .toggle-btn {
             width: 100%;
         }
+
+        /* Grand Totals Section (NEW) */
+        .totals-section {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            margin-top: 25px;
+            padding: 20px;
+            border: 1px solid #333;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+        }
+
+        .total-row.grand-total {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px dashed #444;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #fff;
+            margin-bottom: 0;
+        }
+
+        .total-val {
+            color: var(--accent);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
     <header>
         <h1 class="text-2xl font-black tracking-tight text-white uppercase italic">Project<span class="text-cyan-400">100</span></h1>
-        <div class="points-display"><span id="totalPoints">0</span> / 100</div> 
+        <div class="header-points-wrapper">
+            <div class="header-points-label">Weekly Points</div>
+            <div class="points-display"><span id="topWeeklyPoints">0</span></div> 
+        </div>
     </header>
 
     <div class="share-banner">
@@ -395,6 +445,19 @@
                 <button class="toggle-btn bonus-btn" data-points="10" id="studioBonusBtn">Claim</button>
             </div>
         </div>
+
+        <!-- Final Totals Summary Card (NEW) -->
+        <div class="totals-section" id="totalsSection">
+            <div class="total-row">
+                <span>Bonus Points</span>
+                <span class="total-val" id="bottomBonusPoints">0</span>
+            </div>
+            <div class="total-row grand-total">
+                <span>Overall Total</span>
+                <span class="total-val"><span id="bottomOverallTotal">0</span> / 100</span>
+            </div>
+        </div>
+
     </div>
 
     <script type="module">
@@ -426,7 +489,7 @@
 
         let userData = { name: "", totalPoints: 0, weeks: {}, bonuses: {}, weeklyPxi: {} };
 
-        // 1. Leaderboard Logic (Runs for everyone immediately)
+        // 1. Leaderboard Logic
         const leaderboardQuery = query(collection(db, "project100"), orderBy("totalPoints", "desc"));
         onSnapshot(leaderboardQuery, (querySnapshot) => {
             const tbody = document.getElementById('leaderboardBody');
@@ -530,7 +593,6 @@
                 `;
                 content.appendChild(pxiRow);
 
-                // Add Weekly Total Row Footer
                 const totalRow = document.createElement('div');
                 totalRow.className = 'weekly-total-row';
                 totalRow.innerHTML = `Week ${w} Total: <span class="weekly-total-display" data-week="${w}">0</span>`;
@@ -546,7 +608,10 @@
             }
 
             function updateStateAndSave() {
-                let pts = 0;
+                let weeklyPtsTotal = 0;
+                let bonusPtsTotal = 0;
+
+                // Calculate Weekly
                 for (let w = 1; w <= 8; w++) {
                     let weekPts = 0;
                     if(userData.weeks[`week${w}`]) {
@@ -559,21 +624,27 @@
                     }
                     if (userData.weeklyPxi[w]) weekPts += 5;
                     
-                    // Update Weekly UI immediately on click
                     const weekTotalEl = document.querySelector(`.weekly-total-display[data-week="${w}"]`);
                     if (weekTotalEl) weekTotalEl.textContent = weekPts;
                     
-                    pts += weekPts;
+                    weeklyPtsTotal += weekPts;
                 }
                 
+                // Calculate Bonuses
                 document.querySelectorAll('.bonus-btn').forEach(btn => {
                     const bonusId = btn.id;
                     const pointValue = parseInt(btn.getAttribute('data-points'));
-                    if (userData.bonuses[bonusId]) pts += pointValue;
+                    if (userData.bonuses[bonusId]) bonusPtsTotal += pointValue;
                 });
                 
-                userData.totalPoints = pts;
-                document.getElementById('totalPoints').textContent = pts;
+                // Combine and update UI
+                const overallTotal = weeklyPtsTotal + bonusPtsTotal;
+                userData.totalPoints = overallTotal; // Preserves the leaderboard ranking
+                
+                document.getElementById('topWeeklyPoints').textContent = weeklyPtsTotal;
+                document.getElementById('bottomBonusPoints').textContent = bonusPtsTotal;
+                document.getElementById('bottomOverallTotal').textContent = overallTotal;
+
                 saveData();
             }
 
@@ -598,9 +669,10 @@
                     userData.bonuses = dbData.bonuses || {};
                     userData.weeklyPxi = dbData.weeklyPxi || {};
 
-                    document.getElementById('totalPoints').textContent = userData.totalPoints;
+                    // Visually update everything dynamically on load/sync
+                    let weeklyPtsTotal = 0;
+                    let bonusPtsTotal = 0;
 
-                    // Visually update buttons and weekly totals on load/sync
                     for (let w = 1; w <= 8; w++) {
                         let weekPts = 0;
                         userData.weeks[`week${w}`].forEach((session, index) => {
@@ -638,18 +710,29 @@
 
                         const weekTotalEl = document.querySelector(`.weekly-total-display[data-week="${w}"]`);
                         if (weekTotalEl) weekTotalEl.textContent = weekPts;
+                        
+                        weeklyPtsTotal += weekPts;
                     }
 
                     document.querySelectorAll('.bonus-btn').forEach(btn => {
                         const bonusId = btn.id;
+                        const pointValue = parseInt(btn.getAttribute('data-points'));
                         if (userData.bonuses[bonusId]) {
                             btn.classList.add('active');
                             btn.textContent = 'Claimed';
+                            bonusPtsTotal += pointValue;
                         } else {
                             btn.classList.remove('active');
                             btn.textContent = 'Claim';
                         }
                     });
+
+                    // Update the text values on the page based on the remote data
+                    const overallTotal = weeklyPtsTotal + bonusPtsTotal;
+                    document.getElementById('topWeeklyPoints').textContent = weeklyPtsTotal;
+                    document.getElementById('bottomBonusPoints').textContent = bonusPtsTotal;
+                    document.getElementById('bottomOverallTotal').textContent = overallTotal;
+
                 } else {
                     updateStateAndSave();
                 }
@@ -688,8 +771,9 @@
             document.getElementById('weeksContainer').style.display = 'none';
             document.querySelector('.fixed-points').style.display = 'none';
             document.querySelector('.share-banner').style.display = 'none';
+            document.getElementById('totalsSection').style.display = 'none';
             document.querySelectorAll('.section-title').forEach(el => el.style.display = 'none');
-            document.getElementById('totalPoints').textContent = "0";
+            document.getElementById('topWeeklyPoints').textContent = "0";
         }
 
         // 4. Submit Name Event Listener

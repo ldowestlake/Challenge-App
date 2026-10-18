@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project 100 Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --accent: #00e5ff; 
+            --accent-hover: #00b3cc;
+            --gold: #FFD700;
+            --silver: #C0C0C0;
+            --bronze: #CD7F32;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            padding-bottom: 40px;
+        }
+
+        /* Sticky Header */
+        header {
+            position: sticky;
+            top: 0;
+            background-color: var(--card-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent);
+            z-index: 100;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .points-display {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--accent);
+        }
+
+        .share-banner {
+            background: #2a2a2a;
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            text-align: center;
+            color: var(--text-muted);
+            border-bottom: 1px solid #333;
+        }
+        
+        .share-banner span {
+            color: var(--accent);
+            user-select: all;
+            font-weight: bold;
+            display: block;
+            margin-top: 5px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+
+        /* Profile & Leaderboard Styles */
+        .profile-section {
+            background-color: var(--card-bg);
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .name-input {
+            flex-grow: 1;
+            background: #121212;
+            border: 1px solid #555;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+
+        .name-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .name-input:disabled {
+            background: #1e1e1e;
+            border-color: #333;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .leaderboard-table th, .leaderboard-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+
+        .leaderboard-table th {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .leaderboard-table tr:nth-child(1) td:nth-child(1) { color: var(--gold); font-weight: bold; font-size: 1.2rem;}
+        .leaderboard-table tr:nth-child(2) td:nth-child(1) { color: var(--silver); font-weight: bold; font-size: 1.1rem;}
+        .leaderboard-table tr:nth-child(3) td:nth-child(1) { color: var(--bronze); font-weight: bold; font-size: 1.05rem;}
+
+        .leaderboard-pts {
+            color: var(--accent);
+            font-weight: bold;
+            text-align: right !important;
+        }
+
+        /* Collapsible Weeks */
+        details {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #333;
+            overflow: hidden;
+        }
+
+        summary {
+            padding: 18px 20px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            cursor: pointer;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary:after {
+            content: "▼";
+            font-size: 0.9rem;
+            color: var(--accent);
+            transition: transform 0.2s;
+        }
+
+        details[open] summary:after {
+            transform: rotate(180deg);
+        }
+
+        details[open] summary {
+            border-bottom: 1px solid #333;
+        }
+
+        .week-content {
+            padding: 15px;
+            display: grid;
+            gap: 10px;
+        }
+
+        /* Pre-loaded Session Rows */
+        .session-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2a2a2a;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            gap: 10px;
+            flex-wrap: wrap; 
+        }
+
+        .pxi-row {
+            margin-top: 5px;
+            border-top: 2px dashed #444;
+            background: #1a1a1a;
+        }
+
+        .class-name {
+            font-size: 1.05rem;
+            font-weight: 500;
+            flex-grow: 1;
+        }
+
+        .session-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .medal-select {
+            background: #1e1e1e;
+            color: var(--text-main);
+            border: 1px solid #555;
+            padding: 7px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .medal-select:focus {
+            border-color: var(--accent);
+        }
+
+        .toggle-btn {
+            background: #333;
+            color: var(--text-muted);
+            border: 1px solid #555;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            min-width: 90px;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+        }
+
+        .toggle-btn.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+
+        /* Weekly Total Footer */
+        .weekly-total-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-top: 12px;
+            margin-top: 5px;
+            border-top: 1px solid #333;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .weekly-total-row span {
+            color: var(--accent);
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        /* Fixed Point Categories */
+        .section-title {
+            margin: 30px 0 15px 0;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+
+        .fixed-points {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .point-card {
+            background-color: var(--card-bg);
+            padding: 20px 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .point-card h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.95rem;
+            color: #fff;
+            text-transform: uppercase;
+            line-height: 1.3;
+        }
+
+        .point-val {
+            color: var(--accent);
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+        }
+
+        .point-card .toggle-btn {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1 class="text-2xl font-black tracking-tight text-white uppercase italic">Project<span class="text-cyan-400">100</span></h1>
+        <div class="points-display"><span id="totalPoints">0</span> / 100</div> 
+    </header>
+
+    <div class="share-banner">
+        Your unique tracker link:
+        <span id="shareUrl">Loading...</span>
+    </div>
+
+    <div class="container" id="appContainer">
+        
+        <!-- User Profile & Named Link Generator -->
+        <div class="profile-section" id="profileSection">
+            <input type="text" id="userNameInput" class="name-input" placeholder="First Name & Last Initial (e.g. Dougie D)...">
+            <button id="startTrackerBtn" class="toggle-btn active" style="white-space: nowrap;">Start Tracking</button>
+        </div>
+
+        <!-- Leaderboard -->
+        <details>
+            <summary style="color: #fff;">🏆 Studio Leaderboard</summary>
+            <div class="week-content">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th style="text-align: right;">Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <!-- Populated by Firebase -->
+                    </tbody>
+                </table>
+            </div>
+        </details>
+
+        <div class="section-title">Weekly Sessions & Targets</div>
+        <div id="weeksContainer"></div>
+
+        <div class="section-title">Challenge Goals</div>
+        <div class="fixed-points">
+            <div class="point-card">
+                <h3>Breath Haus App</h3>
+                <div class="point-val">+5 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="5" id="breathBtn">Claim</button>
+            </div>
+            <div class="point-card">
+                <h3>Evolt Scan (Pre, Mid, Post)</h3>
+                <div class="point-val">+5 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="5" id="evoltMidBtn">Claim</button>
+            </div>
+            <div class="point-card">
+                <h3>Fat Loss (1kg+)</h3>
+                <div class="point-val">+5 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="5" id="fatLossBtn">Claim</button>
+            </div>
+            <div class="point-card">
+                <h3>Bio Age (-1 Yr+)</h3>
+                <div class="point-val">+5 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="5" id="bioAgeBtn">Claim</button>
+            </div>
+            <div class="point-card">
+                <h3>Photos Uploaded</h3>
+                <div class="point-val">+5 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="5" id="photosBtn">Claim</button>
+            </div>
+            <div class="point-card">
+                <h3>Personal Bonus</h3>
+                <div class="point-val">+10 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="10" id="personalBonusBtn">Claim</button>
+            </div>
+            <div class="point-card" style="grid-column: span 2;">
+                <h3>Studio Bonus</h3>
+                <div class="point-val">+10 Points</div>
+                <button class="toggle-btn bonus-btn" data-points="10" id="studioBonusBtn">Claim</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const bftSchedule = {
+            1: ["Cardio HIIT ⏱️", "Pump LB 🏋️‍♂️ ", "Cardio Summit 🫀", "Strength UB 💪", "Cardio U 🥵", "Power ⚡"],
+            2: ["Cardio U 🥵", "Pump UB 💪", "Cardio HIIT ⏱️", "Strenght LB 🏋️‍♂️", "Cardio Summit 🫀", "Shred (M) 💪🏋️‍♂️"],
+            3: ["Strength LB 🏋️‍♂️", "Cardio Summit 🫀", "Pump UB 💪", "Cardio HIIT ⏱️", "Balanced 😮‍💨", "Power ⚡"],
+            4: ["Shred 🎯", "Hyper (M) 💪🏋️‍♂️", "Cardio U 🥵", "Strength UB 💪", "Cardio HIIT ⏱️", "Strength Endurance 🔥"],
+            5: ["Power ⚡", "Cardio Summit 🫀", "Hyper UB 💪", "Cardio HIIT ⏱️", "Balanced 😮‍💨", "Strength (M) 💪🏋️‍♂️"],
+            6: ["Strength Endurance 🔥", "Cardio U 🥵", "Hyper LB 🏋️‍♂️", "Cardio Summit 🫀", "Strenght UB 💪", "Cardio HIIT ⏱️"],
+            7: ["Cardio U 🥵", "Strength UB 💪", "Cardio HIIT ⏱️", "Hyper LB 🏋️‍♂️", "Cardio Summit 🫀", "Power ⚡"],
+            8: ["Hyper UB 💪", "Cardio HIIT ⏱️", "Strenght LB 🏋️‍♂️", "Shred 🎯", "Balanced 😮‍💨", "Strenght Endurance 🔥"]
+        };
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDUcf1H76388_z3fa-DX0WTCMvqjgQ7KNQ",
+            authDomain: "challenge-tracker-dougie.firebaseapp.com",
+            projectId: "challenge-tracker-dougie",
+            storageBucket: "challenge-tracker-dougie.firebasestorage.app",
+            messagingSenderId: "813387151869",
+            appId: "1:813387151869:web:7d065f88a9f13dd7bfc194"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let userData = { name: "", totalPoints: 0, weeks: {}, bonuses: {}, weeklyPxi: {} };
+
+        // 1. Leaderboard Logic (Runs for everyone immediately)
+        const leaderboardQuery = query(collection(db, "project100"), orderBy("totalPoints", "desc"));
+        onSnapshot(leaderboardQuery, (querySnapshot) => {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = ''; 
+            
+            let rank = 1;
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.name && data.name.trim() !== "" && data.totalPoints > 0) {
+                    const tr = document.createElement('tr');
+                    
+                    let rankDisplay = rank;
+                    if (rank === 1) rankDisplay = '🥇';
+                    if (rank === 2) rankDisplay = '🥈';
+                    if (rank === 3) rankDisplay = '🥉';
+
+                    tr.innerHTML = `
+                        <td>${rankDisplay}</td>
+                        <td>${data.name}</td>
+                        <td class="leaderboard-pts">${data.totalPoints}</td>
+                    `;
+                    tbody.appendChild(tr);
+                    rank++;
+                }
+            });
+
+            if(rank === 1) {
+                tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color: #888;">No scores logged yet!</td></tr>';
+            }
+        });
+
+        // 2. URL Checking & Auto-Save Recovery
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = urlParams.get('user');
+
+        if (!userId) {
+            userId = localStorage.getItem('project100_userId');
+            if (userId) {
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?user=' + encodeURIComponent(userId);
+                window.location.replace(newUrl);
+            }
+        }
+
+        // 3. Main Tracker Logic
+        if (userId) {
+            localStorage.setItem('project100_userId', userId);
+            document.getElementById('shareUrl').textContent = window.location.href;
+            
+            document.getElementById('userNameInput').value = userId;
+            document.getElementById('userNameInput').disabled = true;
+            document.getElementById('startTrackerBtn').style.display = 'none';
+            
+            userData.name = userId; 
+
+            // Generate UI
+            const weeksContainer = document.getElementById('weeksContainer');
+            for (let w = 1; w <= 8; w++) {
+                userData.weeks[`week${w}`] = []; 
+                userData.weeklyPxi[w] = false;
+                
+                const details = document.createElement('details');
+                if(w === 1) details.open = true; 
+                
+                const summary = document.createElement('summary');
+                summary.textContent = `Week ${w}`;
+                details.appendChild(summary);
+
+                const content = document.createElement('div');
+                content.className = 'week-content';
+
+                const weekClasses = bftSchedule[w];
+
+                weekClasses.forEach((className, index) => {
+                    userData.weeks[`week${w}`].push({ completed: false, medal: 'none' });
+                    
+                    const row = document.createElement('div');
+                    row.className = 'session-row';
+                    row.innerHTML = `
+                        <div class="class-name">${className}</div>
+                        <div class="session-actions">
+                            <select class="medal-select" data-week="${w}" data-session="${index}">
+                                <option value="none">No Medal</option>
+                                <option value="bronze">Bronze (+1)</option>
+                                <option value="silver">Silver (+2)</option>
+                                <option value="gold">Gold (+3)</option>
+                            </select>
+                            <button class="toggle-btn bft-btn" data-week="${w}" data-session="${index}">Done</button>
+                        </div>
+                    `;
+                    content.appendChild(row);
+                });
+
+                const pxiRow = document.createElement('div');
+                pxiRow.className = 'session-row pxi-row';
+                pxiRow.innerHTML = `
+                    <div class="class-name" style="color: var(--accent);">Weekly PXI Target</div>
+                    <div class="session-actions">
+                        <span style="font-size: 0.85rem; color: #888;">+5 Pts</span>
+                        <button class="toggle-btn pxi-btn" data-week="${w}">Claim</button>
+                    </div>
+                `;
+                content.appendChild(pxiRow);
+
+                // Add Weekly Total Row Footer
+                const totalRow = document.createElement('div');
+                totalRow.className = 'weekly-total-row';
+                totalRow.innerHTML = `Week ${w} Total: <span class="weekly-total-display" data-week="${w}">0</span>`;
+                content.appendChild(totalRow);
+
+                details.appendChild(content);
+                weeksContainer.appendChild(details);
+            }
+
+            async function saveData() {
+                try { await setDoc(doc(db, "project100", userId), userData); } 
+                catch (e) { console.error("Error saving: ", e); }
+            }
+
+            function updateStateAndSave() {
+                let pts = 0;
+                for (let w = 1; w <= 8; w++) {
+                    let weekPts = 0;
+                    if(userData.weeks[`week${w}`]) {
+                        userData.weeks[`week${w}`].forEach(session => {
+                            if (session.completed) weekPts += 1; 
+                            if (session.medal === 'gold') weekPts += 3;
+                            else if (session.medal === 'silver') weekPts += 2;
+                            else if (session.medal === 'bronze') weekPts += 1;
+                        });
+                    }
+                    if (userData.weeklyPxi[w]) weekPts += 5;
+                    
+                    // Update Weekly UI immediately on click
+                    const weekTotalEl = document.querySelector(`.weekly-total-display[data-week="${w}"]`);
+                    if (weekTotalEl) weekTotalEl.textContent = weekPts;
+                    
+                    pts += weekPts;
+                }
+                
+                document.querySelectorAll('.bonus-btn').forEach(btn => {
+                    const bonusId = btn.id;
+                    const pointValue = parseInt(btn.getAttribute('data-points'));
+                    if (userData.bonuses[bonusId]) pts += pointValue;
+                });
+                
+                userData.totalPoints = pts;
+                document.getElementById('totalPoints').textContent = pts;
+                saveData();
+            }
+
+            // Live Data Sync for Current User
+            const docRef = doc(db, "project100", userId);
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const dbData = docSnap.data();
+                    
+                    userData.name = dbData.name || userId;
+                    userData.totalPoints = dbData.totalPoints || 0;
+                    
+                    for (let w = 1; w <= 8; w++) {
+                        const savedWeek = dbData.weeks[`week${w}`] || [];
+                        savedWeek.forEach((session, index) => {
+                            if(userData.weeks[`week${w}`][index]) {
+                                userData.weeks[`week${w}`][index].completed = session.completed;
+                                userData.weeks[`week${w}`][index].medal = session.medal || 'none';
+                            }
+                        });
+                    }
+                    userData.bonuses = dbData.bonuses || {};
+                    userData.weeklyPxi = dbData.weeklyPxi || {};
+
+                    document.getElementById('totalPoints').textContent = userData.totalPoints;
+
+                    // Visually update buttons and weekly totals on load/sync
+                    for (let w = 1; w <= 8; w++) {
+                        let weekPts = 0;
+                        userData.weeks[`week${w}`].forEach((session, index) => {
+                            if (session.completed) weekPts += 1; 
+                            if (session.medal === 'gold') weekPts += 3;
+                            else if (session.medal === 'silver') weekPts += 2;
+                            else if (session.medal === 'bronze') weekPts += 1;
+
+                            const btn = document.querySelector(`.bft-btn[data-week="${w}"][data-session="${index}"]`);
+                            const select = document.querySelector(`.medal-select[data-week="${w}"][data-session="${index}"]`);
+                            
+                            if (btn) {
+                                if (session.completed) {
+                                    btn.classList.add('active');
+                                    btn.textContent = '✓ (+1)';
+                                } else {
+                                    btn.classList.remove('active');
+                                    btn.textContent = 'Done';
+                                }
+                            }
+                            if (select) select.value = session.medal;
+                        });
+                        
+                        const pxiBtn = document.querySelector(`.pxi-btn[data-week="${w}"]`);
+                        if (pxiBtn) {
+                            if (userData.weeklyPxi[w]) {
+                                pxiBtn.classList.add('active');
+                                pxiBtn.textContent = 'Claimed';
+                                weekPts += 5;
+                            } else {
+                                pxiBtn.classList.remove('active');
+                                pxiBtn.textContent = 'Claim';
+                            }
+                        }
+
+                        const weekTotalEl = document.querySelector(`.weekly-total-display[data-week="${w}"]`);
+                        if (weekTotalEl) weekTotalEl.textContent = weekPts;
+                    }
+
+                    document.querySelectorAll('.bonus-btn').forEach(btn => {
+                        const bonusId = btn.id;
+                        if (userData.bonuses[bonusId]) {
+                            btn.classList.add('active');
+                            btn.textContent = 'Claimed';
+                        } else {
+                            btn.classList.remove('active');
+                            btn.textContent = 'Claim';
+                        }
+                    });
+                } else {
+                    updateStateAndSave();
+                }
+            });
+
+            // Input Event Listeners
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('bft-btn')) {
+                    const w = e.target.getAttribute('data-week');
+                    const s = e.target.getAttribute('data-session');
+                    userData.weeks[`week${w}`][s].completed = !userData.weeks[`week${w}`][s].completed;
+                    updateStateAndSave();
+                }
+                if (e.target.classList.contains('pxi-btn')) {
+                    const w = e.target.getAttribute('data-week');
+                    userData.weeklyPxi[w] = !userData.weeklyPxi[w];
+                    updateStateAndSave();
+                }
+                if (e.target.classList.contains('bonus-btn')) {
+                    const bonusId = e.target.id;
+                    userData.bonuses[bonusId] = !userData.bonuses[bonusId];
+                    updateStateAndSave();
+                }
+            });
+
+            document.addEventListener('change', (e) => {
+                if (e.target.classList.contains('medal-select')) {
+                    const w = e.target.getAttribute('data-week');
+                    const s = e.target.getAttribute('data-session');
+                    userData.weeks[`week${w}`][s].medal = e.target.value;
+                    updateStateAndSave();
+                }
+            });
+
+        } else {
+            document.getElementById('weeksContainer').style.display = 'none';
+            document.querySelector('.fixed-points').style.display = 'none';
+            document.querySelector('.share-banner').style.display = 'none';
+            document.querySelectorAll('.section-title').forEach(el => el.style.display = 'none');
+            document.getElementById('totalPoints').textContent = "0";
+        }
+
+        // 4. Submit Name Event Listener
+        document.getElementById('startTrackerBtn').addEventListener('click', () => {
+            const enteredName = document.getElementById('userNameInput').value.trim();
+            if (enteredName) {
+                const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?user=' + encodeURIComponent(enteredName);
+                window.location.href = newUrl; 
+            } else {
+                alert("Please enter your name to start tracking!");
+            }
+        });
+    </script>
+</body>
+</html>
